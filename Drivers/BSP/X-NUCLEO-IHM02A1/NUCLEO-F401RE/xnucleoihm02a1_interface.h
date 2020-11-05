@@ -76,7 +76,7 @@
 
 //#define NUCLEO_USE_USER_LED     //!< Uncomment to enable the NUCLEO User LED feature.
 //#define NUCLEO_USE_USER_BUTTON  //!< Uncomment to enable the NUCLEO User Button feature.
-//#define NUCLEO_USE_USART        //!< Uncomment to enable the NUCLEO USART feature.
+#define NUCLEO_USE_USART        //!< Uncomment to enable the NUCLEO USART feature.
 
 //#define USE_ST1S14_PGOOD        //!< Uncomment to use ADC for reading PGOOD of ST1S14
 

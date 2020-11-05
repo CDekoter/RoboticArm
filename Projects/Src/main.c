@@ -102,11 +102,58 @@ int main(void)
   /* X-NUCLEO-IHM02A1 initialization */
   BSP_Init();
 	
-#if defined (MICROSTEPPING_MOTOR_EXAMPLE)
-  /* Perform a batch commands for X-NUCLEO-IHM02A1 */
-  MicrosteppingMotor_Example_01(-200, 0, 0, 0, 0);
-	//MicrosteppingMotor_Example_01(250, 0, -100, 0, 1);
-#endif
+	/*Initialize the motor parameters */
+	Motor_Param_Reg_Init();
+	
+	float exe_c = 0 ;
+	float wye_c = 0 ;
+	float zed_c = 0 ;
+	
+	float exe_t = 0 ;
+	float wye_t = 0 ;
+	float zed_t = 0 ;
+	
+	float wst = 0 ; // angle of relative wrist rotation in radians
+	int  grp = 0 ; // if grp = 0, no state change occurs during the move. if grp == 1, the gripper changes state at the beginning of the move
+	
+	if (exe_t > 500 || wye_t > 500 || zed_t > 300)
+	{
+		Error_Handler() ;
+	}
+	
+	Home_Arm() ; // home the arm, moving it to 159, 0, 179
+	
+	exe_c = 159 ; // home position
+	wye_c = 0 ;
+	zed_c = 179 ;
+	
+	exe_t = 300 ;
+	wye_t = 100 ;
+	zed_t = 10 ;
+	
+	//Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst,grp); 
+	
+	
+	for(int i = 0; i < 100; i++)
+	{
+		Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst,grp); 
+		exe_c = exe_t ;
+		wye_c = wye_t ;
+		zed_c = zed_t ;
+		
+		exe_t = exe_t + 1 ;
+		wye_t = wye_t + 1 ;
+		zed_t = zed_t + 1 ;
+	}
+	
+	
+	
+/*	while(1) 
+	{
+		// Check if any Application Command for L6470 has been entered by USART
+    USART_CheckAppCmd();
+		HAL_Delay(5000) ;
+	}*/
 }
 
 

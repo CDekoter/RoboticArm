@@ -1022,7 +1022,7 @@ void USART_ITCharManager(UART_HandleTypeDef* huart) {
 		huart->pRxBuffPtr -= 1;
 		*(huart->pRxBuffPtr) = '\0';
 
-		USART_Transmit(huart, "\n\r");
+		USART_Transmit(huart, "Received! \n\r");
 
 		while (HAL_IS_BIT_SET(huart->Instance->USART_STATUS_REGISTER,
 				UART_FLAG_RXNE)) {
