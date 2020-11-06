@@ -116,38 +116,45 @@ int main(void)
 	float wst = 0 ; // angle of relative wrist rotation in radians
 	int  grp = 0 ; // if grp = 0, no state change occurs during the move. if grp == 1, the gripper changes state at the beginning of the move
 	
-	if (exe_t > 500 || wye_t > 500 || zed_t > 300)
-	{
-		Error_Handler() ;
-	}
-	
 	Home_Arm() ; // home the arm, moving it to 159, 0, 179
 	
 	exe_c = 159 ; // home position
-	wye_c = 0 ;
+	wye_c = 1 ;
 	zed_c = 179 ;
 	
 	exe_t = 300 ;
 	wye_t = 100 ;
-	zed_t = 10 ;
+	zed_t = 100 ;
 	
-	//Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst,grp); 
-	
-	
-	for(int i = 0; i < 100; i++)
+	while(1)
 	{
-		Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst,grp); 
-		exe_c = exe_t ;
-		wye_c = wye_t ;
-		zed_c = zed_t ;
-		
-		exe_t = exe_t + 1 ;
-		wye_t = wye_t + 1 ;
-		zed_t = zed_t + 1 ;
-	}
+	
+	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst,grp); 
+
+	exe_c = exe_t ; // block to move onto the next position
+	wye_c = wye_t ;
+	zed_c = zed_t ;
+	exe_t = 250 ;
+	wye_t = 200 ;
+	zed_t = 80 ;
+	grp = 1 ;
+	wst = 5000 ;
+	
+	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst,grp); 
+	
+	exe_c = exe_t ; // block to move onto the next position
+	wye_c = wye_t ;
+	zed_c = zed_t ;
+	exe_t = 250 ;
+	wye_t = -250 ;
+	zed_t = 100 ;
+	grp = 2 ;
+	wst = -5000 ;
 	
 	
+}
 	
+	 //Motor_Test() ; // Uncomment this line, the function header in example.h, and in example.c to test motion commands.
 /*	while(1) 
 	{
 		// Check if any Application Command for L6470 has been entered by USART

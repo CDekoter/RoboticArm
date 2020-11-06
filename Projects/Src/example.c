@@ -110,31 +110,16 @@
 	#define LIM_ULN 0.0
 	#define LIM_WST 0.1
 	
-	#define STEPS_PER_ROTATION 351488 
-	#define GRIPPER_STEPS_PER_ROTATION 25600
-	
 	#define STEPS_PER_RAD_BASE 38003.0 	// 5 2/11 gearbox from 1/128th microstepping motor, 10/18 belt reduction
 	#define STEPS_PER_RAD_HUM 111911.0   // 13 212/289 gearbox from 1/128th microstepping motor, 10/20 belt reduction
 	#define STEPS_PER_RAD_ULN 111911.0  // same, for now
-	
-	#define ALPHA_CORRECTION_RATIO 1.50
-	#define BETA_CORRECTION_RATIO 1.50
-	#define GAMMA_CORRECTION_RATIO 1.50
-	
-	#define GAMMA_STARTING_ANGLE 0.5307787
 	
 	#define HUMERUS_MAX_PIN GPIO_PIN_8 // PB_8 - D7 on board
 	#define ULNA_MIN_PIN GPIO_PIN_9			// PB_9 - D8 on board
 	#define WRIST_MID_PIN GPIO_PIN_0	// PB_0 - A0 on board
 	#define CLAW_PIN GPIO_PIN_6 // not used
 
-
-	float calc_alpha(float x, float y);
-	float calc_beta(float x, float y, float z);
-	float calc_gamma(float x, float y, float z);
-	float calc_L(float x, float y, float z);
-	float angle_to_steps(float angle);
-	float Base_Rot(float x_c, float y_c, float x_t, float y_t) ;
+	float Base_Rot(float x, float y) ;
 	float dist(float x, float y) ;
 	float Phi(float dist, float z) ;
 	float Beta(float dist, float z, float Phi) ;
@@ -148,7 +133,6 @@
 	void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle);
 	void user_pwm_setvalue(uint16_t value);
 	static void SystemClock_Config(void);
-	int gripper_angle_to_steps(float angle);
 	
 	GPIO_InitTypeDef GPIO_InitStructure;
 	TIM_MasterConfigTypeDef sMasterConfig;
@@ -156,7 +140,7 @@
 	TIM_HandleTypeDef htim4;
 	static UART_HandleTypeDef huart2;
 	
-void Home_Arm()
+void Home_Arm(void)
 {
 	uint8_t id;
 	HAL_Init();
@@ -232,7 +216,7 @@ void Home_Arm()
 			while(HAL_GPIO_ReadPin(GPIOA, ULNA_MIN_PIN));
 			StepperMotorBoardHandle->Command->HardStop(board2, L6470_ID(0));
 			StepperMotorBoardHandle->Command->ResetPos(board2, L6470_ID(0));
-			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(0), L6470_DIR_FWD_ID, angle_to_steps(HOME_ULN));
+			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(0), L6470_DIR_FWD_ID, Ulna_Rot(HOME_ULN));
 			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board2, L6470_ID(0), BUSY_ID)==0);
 			
 			StepperMotorBoardHandle->Command->SoftStop(board2, L6470_ID(0)); // lock ulna in place
@@ -246,7 +230,7 @@ void Home_Arm()
 			while(HAL_GPIO_ReadPin(GPIOA, WRIST_MID_PIN)){};
 			StepperMotorBoardHandle->Command->HardStop(board2, L6470_ID(1));
 			StepperMotorBoardHandle->Command->ResetPos(board2, L6470_ID(1));
-			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(1), L6470_DIR_REV_ID, angle_to_steps(HOME_WST));
+			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(1), L6470_DIR_REV_ID, Ulna_Rot(HOME_WST));
 			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board2, L6470_ID(1), BUSY_ID)==0);
 			
 			StepperMotorBoardHandle->Command->SoftStop(board2, L6470_ID(1));	// lock wrist arm in place
@@ -261,10 +245,10 @@ void Home_Arm()
 			while(HAL_GPIO_ReadPin(GPIOA, HUMERUS_MAX_PIN));
 			StepperMotorBoardHandle->Command->HardStop(board1, L6470_ID(1));
 			StepperMotorBoardHandle->Command->ResetPos(board1, L6470_ID(1));
-			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_REV_ID, angle_to_steps(HOME_HUM));
+			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_REV_ID, Humerus_Rot(HOME_HUM));
 			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board1, L6470_ID(1), BUSY_ID)==0);
 				
-			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(1), L6470_DIR_FWD_ID, angle_to_steps(HOME_WST-0.1)); // move the wrist back to level, not on the limit switch though
+			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(1), L6470_DIR_FWD_ID, Ulna_Rot(HOME_WST-0.1)); // move the wrist back to level, not on the limit switch though
 		
 }
 
@@ -299,33 +283,126 @@ void Move_Arm_Relative(float x_c, float y_c, float z_c, float x_t, float y_t, fl
 	
 	
 		if(GripperState == 1){
-					StepperMotorBoardHandle->Command->Move(board3, L6470_ID(0), L6470_DIR_FWD_ID, 10000) ;
-					while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board3, L6470_ID(0), BUSY_ID)==0);
-					
-		}
-		else if(GripperState == 2)
-		{
-			StepperMotorBoardHandle->Command->Move(board3, L6470_ID(0), L6470_DIR_REV_ID, 10000) ;
-			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board3, L6470_ID(0), BUSY_ID)==0);
+					StepperMotorBoardHandle->Command->Move(board3, L6470_ID(1), L6470_DIR_FWD_ID, 5000) ;
+					while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board3, L6470_ID(1), BUSY_ID)==0);
 		}
 		
-	
-		StepperMotorBoardHandle->Command->Move(board1, L6470_ID(0), L6470_DIR_FWD_ID, Base_Rot(x_c, y_c,x_t,y_t));	 
-	
+		else if(GripperState == 2){
+			StepperMotorBoardHandle->Command->Move(board3, L6470_ID(1), L6470_DIR_REV_ID, 5000) ;
+			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board3, L6470_ID(1), BUSY_ID)==0);
+		}
+		
+		if(WristAngle < 0)
+		{
+		StepperMotorBoardHandle->Command->Move(board3, L6470_ID(0), L6470_DIR_REV_ID, -1 * WristAngle);	 
+		}
+		else
+		{
+			StepperMotorBoardHandle->Command->Move(board3, L6470_ID(0), L6470_DIR_FWD_ID, WristAngle);	
+		}
+		
+		while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board3, L6470_ID(0), BUSY_ID)==0);
+		
+		
+		float Base_Steps = Base_Rot(x_t, y_t)-Base_Rot(x_c,y_c) ;
+		
+		if(Base_Steps < 0)
+		{
+		StepperMotorBoardHandle->Command->Move(board1, L6470_ID(0), L6470_DIR_REV_ID, -1 * Base_Steps);	 
+		}
+		else
+		{
+			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(0), L6470_DIR_FWD_ID, Base_Steps);	
+		}
+		while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board1, L6470_ID(0), BUSY_ID)==0);
+		
 		float Delta_Beta = Beta(dist(x_t,y_t),z_t,Phi(dist(x_t,y_t),z_t)) - Beta(dist(x_c,y_c),z_c,Phi(dist(x_c,y_c),z_c)) ;
 		float Delta_Phi = Phi(dist(x_t,y_t),z_t) - Phi(dist(x_c,y_c),z_c) ; 
 		
-		
-		StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_FWD_ID, fabs(Humerus_Rot(Delta_Beta)));	
-		
-		StepperMotorBoardHandle->Command->Move(board2, L6470_ID(0), L6470_DIR_REV_ID, fabs(Ulna_Rot(Delta_Phi)));		
-		
+		if(Delta_Beta < 0)
+		{
+			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_FWD_ID, -1 * Humerus_Rot(Delta_Beta));	
+		}
+		else
+		{
+			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_REV_ID, Humerus_Rot(Delta_Beta));	
+		}
+		while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board1, L6470_ID(1), BUSY_ID)==0);
+		if(Delta_Phi < 0)
+		{
+			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(0), L6470_DIR_REV_ID, -1*Ulna_Rot(Delta_Phi));		
+		}
+		else
+		{
+			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(0), L6470_DIR_FWD_ID, Ulna_Rot(Delta_Phi));
+		}
+		while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board2, L6470_ID(0), BUSY_ID)==0);
 }
+/*
+void Motor_Test()
+{
+	uint8_t id;
+	HAL_Init();
+	
+	uint8_t buffer[10];
+	uint8_t data[6];
+	
+	
+	StepperMotorBoardHandle_t *StepperMotorBoardHandle;
+  MotorParameterData_t *MotorParameterDataGlobal, *MotorParameterDataSingle;
+  
+	uint8_t board1 = EXPBRD_ID(0);
+	uint8_t board2 = EXPBRD_ID(1);
+	uint8_t board3 = EXPBRD_ID(2);
+	
+  // Setup each X-NUCLEO-IHM02A1 Expansion Board *****************************
+  
+  // Get the parameters for the motor connected with the 1st stepper motor driver of the 1st stepper motor expansion board
+  MotorParameterDataGlobal = GetMotorParameterInitData();
+  
+  for (id = 0; id < EXPBRD_MOUNTED_NR; id++)
+  {
+    StepperMotorBoardHandle = BSP_GetExpansionBoardHandle(EXPBRD_ID(id));
+    MotorParameterDataSingle = MotorParameterDataGlobal+(id*L6470DAISYCHAINSIZE);
+    StepperMotorBoardHandle->Config(MotorParameterDataSingle);
+  }
 
-float Base_Rot(float x_c, float y_c, float x_t, float y_t){
-	float steps = STEPS_PER_RAD_BASE * (atan(y_t/x_t) - atan(y_c/x_c)) ; // in steps, check if atan2 works better
+	StepperMotorBoardHandle->Command->SoftStop(board1, L6470_ID(0)); // lock all motors in place using the softstop command
+	StepperMotorBoardHandle->Command->SoftStop(board1, L6470_ID(1));
+	StepperMotorBoardHandle->Command->SoftStop(board2, L6470_ID(0));
+	StepperMotorBoardHandle->Command->SoftStop(board2, L6470_ID(1));
+	StepperMotorBoardHandle->Command->SoftStop(board3, L6470_ID(0));
+	StepperMotorBoardHandle->Command->SoftStop(board3, L6470_ID(1));
+	
+	
+	HAL_Delay(5000) ;
+	StepperMotorBoardHandle->Command->Move(board3, L6470_ID(0), L6470_DIR_FWD_ID, 2000);
+	HAL_Delay(5000) ;
+	StepperMotorBoardHandle->Command->Move(board3, L6470_ID(1), L6470_DIR_FWD_ID, 2000);
+}
+*/
 
-	return steps ;
+float Base_Rot(float x, float y){
+	
+	float steps = 0 ;
+	
+	if((x > 0 && y > 0))
+	{
+		steps = STEPS_PER_RAD_BASE * atan(y/x) ;
+	}
+	else if(x > 0 && y < 0)
+	{
+		steps = STEPS_PER_RAD_BASE * -atan(y/x) ;
+	}
+	else if(x < 0 && y > 0)
+	{
+		steps = STEPS_PER_RAD_BASE * (M_PI - atan(y/x)) ;
+	}
+	else
+	{
+		steps = STEPS_PER_RAD_BASE * (atan(y/x)+M_PI) ;
+	}
+		return steps ;
 }
 
 
@@ -349,48 +426,8 @@ float Humerus_Rot(float Beta){
 }
 
 float Ulna_Rot(float Phi){
-	float ulna_rot = Phi * STEPS_PER_RAD_ULN ; // 
-	return ulna_rot ;
-}
-
-
-float calc_alpha(float x, float y){
-	float alpha = atan(y/x);
-	if (x < 0) {
-		alpha -= M_PI;
-	}
-	return alpha;
-}
-
-float calc_beta(float x, float y, float z){
-	
-	float temp_L = calc_L(x, y, z);
-	
-	float beta =  acos((pow(Ulna, 2) - pow(Humerus, 2) - pow(temp_L, 2))/(-2*Humerus*temp_L));
-	
-	float beta_inverse = (M_PI/2)-beta - asin(z/temp_L);
-	
-	return beta_inverse;
-}
-
-float calc_gamma(float x, float y, float z){
-	float temp_L = calc_L(x, y, z);
-	
-	/*To Do: add gamma calculations, it was done incorrectly */
-	float gama = acos((pow(temp_L, 2) - pow(Ulna, 2) - pow(Humerus, 2))/(-2*Ulna*Humerus));
-	
-	float delta_2 = gama - calc_beta(x, y, z);
-	
-	return  delta_2;
-}
-
-float calc_L(float x, float y, float z){
-	return (float)sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2));
-}
-
-float angle_to_steps(float angle){
-	float steps = STEPS_PER_RAD_HUM*angle;
-	return steps;
+	float steps = Phi * STEPS_PER_RAD_ULN ; // 
+	return steps ;
 }
 
 
@@ -403,10 +440,6 @@ eL6470_DirId_t find_Dir_beta(float steps){
 	}
 }
 
-int gripper_angle_to_steps(float angle){
-	int steps = GRIPPER_STEPS_PER_ROTATION*angle/(2*M_PI);
-	return steps;
-}
 
 
 /**
