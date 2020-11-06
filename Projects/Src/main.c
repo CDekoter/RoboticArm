@@ -118,13 +118,13 @@ int main(void)
 	
 	Home_Arm() ; // home the arm, moving it to 159, 0, 179
 	
-	exe_c = 159 ; // home position
+	exe_c = 153 ; // home position
 	wye_c = 1 ;
-	zed_c = 179 ;
+	zed_c = 180 ;
 	
 	exe_t = 300 ;
 	wye_t = 100 ;
-	zed_t = 100 ;
+	zed_t = 200 ;
 	
 	while(1)
 	{
@@ -136,7 +136,7 @@ int main(void)
 	zed_c = zed_t ;
 	exe_t = 250 ;
 	wye_t = 200 ;
-	zed_t = 80 ;
+	zed_t = 180 ;
 	grp = 1 ;
 	wst = 5000 ;
 	
@@ -145,9 +145,9 @@ int main(void)
 	exe_c = exe_t ; // block to move onto the next position
 	wye_c = wye_t ;
 	zed_c = zed_t ;
-	exe_t = 250 ;
+	exe_t = 300 ;
 	wye_t = -250 ;
-	zed_t = 100 ;
+	zed_t = 180 ;
 	grp = 2 ;
 	wst = -5000 ;
 	

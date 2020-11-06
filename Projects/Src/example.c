@@ -317,7 +317,7 @@ void Move_Arm_Relative(float x_c, float y_c, float z_c, float x_t, float y_t, fl
 		while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board1, L6470_ID(0), BUSY_ID)==0); // Wait for the move to finish
 		
 		float Delta_Beta = Beta(dist(x_t,y_t),z_t,Phi(dist(x_t,y_t),z_t)) - Beta(dist(x_c,y_c),z_c,Phi(dist(x_c,y_c),z_c)) ;
-		float Delta_Phi = Phi(dist(x_t,y_t),z_t) - Phi(dist(x_c,y_c),z_c) ; 
+		float Delta_Phi = Phi(dist(x_t,y_t),z_t) - (Phi(dist(x_c,y_c),z_c) + Delta_Beta) ; 
 		
 		if(Delta_Beta < 0)
 		{
@@ -328,6 +328,7 @@ void Move_Arm_Relative(float x_c, float y_c, float z_c, float x_t, float y_t, fl
 			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_REV_ID, Humerus_Rot(Delta_Beta));	
 		}
 		while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board1, L6470_ID(1), BUSY_ID)==0);
+		
 		if(Delta_Phi < 0)
 		{
 			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(0), L6470_DIR_REV_ID, -1*Ulna_Rot(Delta_Phi));		
