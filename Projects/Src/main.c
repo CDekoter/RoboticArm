@@ -114,7 +114,7 @@ int main(void)
 	float zed_t = 0 ;
 	
 	float wst = 0 ; // angle of relative wrist rotation in radians
-	int  grp = 0 ; // if grp = 0, no state change occurs during the move. if grp == 1, the gripper changes state at the beginning of the move
+	int  grp = 0 ; // if grp = 0, no state change occurs during the move. if grp == 1, the gripper opens. if grip == 2, the gripper closes
 	
 	Home_Arm() ; // home the arm, moving it to 159, 0, 179
 	

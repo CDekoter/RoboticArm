@@ -304,17 +304,17 @@ void Move_Arm_Relative(float x_c, float y_c, float z_c, float x_t, float y_t, fl
 		while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board3, L6470_ID(0), BUSY_ID)==0);
 		
 		
-		float Base_Steps = Base_Rot(x_t, y_t)-Base_Rot(x_c,y_c) ;
+		float Base_Steps = Base_Rot(x_t, y_t)-Base_Rot(x_c,y_c) ; // Calculate the number of steps required to rotate the base
 		
 		if(Base_Steps < 0)
 		{
-		StepperMotorBoardHandle->Command->Move(board1, L6470_ID(0), L6470_DIR_REV_ID, -1 * Base_Steps);	 
+			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(0), L6470_DIR_REV_ID, -1 * Base_Steps);	 // NOTE: Move can't accept a negative input
 		}
 		else
 		{
 			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(0), L6470_DIR_FWD_ID, Base_Steps);	
 		}
-		while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board1, L6470_ID(0), BUSY_ID)==0);
+		while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board1, L6470_ID(0), BUSY_ID)==0); // Wait for the move to finish
 		
 		float Delta_Beta = Beta(dist(x_t,y_t),z_t,Phi(dist(x_t,y_t),z_t)) - Beta(dist(x_c,y_c),z_c,Phi(dist(x_c,y_c),z_c)) ;
 		float Delta_Phi = Phi(dist(x_t,y_t),z_t) - Phi(dist(x_c,y_c),z_c) ; 
@@ -383,20 +383,12 @@ void Motor_Test()
 */
 
 float Base_Rot(float x, float y){
-	
+	// Calculate the base angle and number of steps to move.
 	float steps = 0 ;
 	
-	if((x > 0 && y > 0))
+	if(x > 0 )
 	{
 		steps = STEPS_PER_RAD_BASE * atan(y/x) ;
-	}
-	else if(x > 0 && y < 0)
-	{
-		steps = STEPS_PER_RAD_BASE * -atan(y/x) ;
-	}
-	else if(x < 0 && y > 0)
-	{
-		steps = STEPS_PER_RAD_BASE * (M_PI - atan(y/x)) ;
 	}
 	else
 	{
@@ -407,16 +399,19 @@ float Base_Rot(float x, float y){
 
 
 float dist(float x, float y){
+	// Calculate the vertical projection of the arm
 	float dist = pow(pow(x,2) + pow(y,2),0.5) ;
 	return dist ;
 }
 
 float Phi(float dist, float z){
+  // Calculate Phi, the angle between the Humerus and Ulna
 	float Phi = acos((pow(dist,2) + pow(z,2) - pow(Humerus,2) - pow(Ulna,2))/(2*Humerus*Ulna)) ; //   122.797 or 2.143
 	return Phi ;
 }
 
 float Beta (float dist, float z, float Phi){
+	// Calculate Beta, the angle of the Humerus to the base
 	float beta = atan(z / dist) + atan((Ulna * sin(Phi))/(Humerus + Ulna*cos(Phi))) ; // 36.06 + 41.265
 	return beta ;
 }
