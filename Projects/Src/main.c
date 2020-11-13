@@ -114,53 +114,87 @@ int main(void)
 	float zed_t = 0 ;
 	
 	float wst = 0 ; // angle of relative wrist rotation in radians
-	int  grp = 0 ; // if grp = 0, no state change occurs during the move. if grp == 1, the gripper opens. if grip == 2, the gripper closes
+	short  grp = 0 ; // if grp = 0, no state change occurs during the move. if grp == 1, the gripper opens. if grip == 2, the gripper closes
+	
+	
+	grp = 1 ;
+	Gripper(grp) ;
+	
+	HAL_Delay(2000) ;
+	grp = 2 ;
+	Gripper(grp) ;
 	
 	Home_Arm() ; // home the arm, moving it to 159, 0, 179
 	
 	exe_c = 153 ; // home position
 	wye_c = 1 ;
 	zed_c = 180 ;
-	
-	exe_t = 300 ;
-	wye_t = 100 ;
-	zed_t = 200 ;
-	
+		
 	while(1)
 	{
 	
-	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst,grp); 
-
-	exe_c = exe_t ; // block to move onto the next position
-	wye_c = wye_t ;
-	zed_c = zed_t ;
+	
 	exe_t = 250 ;
 	wye_t = 200 ;
-	zed_t = 180 ;
+	zed_t = 40 ;
 	grp = 1 ;
-	wst = 5000 ;
-	
-	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst,grp); 
+	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst); 
+	Gripper(grp) ;
+		
+	exe_c = exe_t ; // block to move onto the next position
+	wye_c = wye_t ;
+	zed_c = zed_t ;
+	grp = 1 ;
+	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst); 
 	
 	exe_c = exe_t ; // block to move onto the next position
 	wye_c = wye_t ;
 	zed_c = zed_t ;
-	exe_t = 300 ;
-	wye_t = -250 ;
-	zed_t = 180 ;
-	grp = 2 ;
-	wst = -5000 ;
+	zed_t = 250 ;
+	grp = 0 ;
+	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst); 
 	
+	exe_c = exe_t ; // block to move onto the next position
+	wye_c = wye_t ;
+	zed_c = zed_t ;
+	wye_t = -200 ;
+	grp = 0 ;
+	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst); 
+	
+	exe_c = exe_t ; // block to move onto the next position
+	wye_c = wye_t ;
+	zed_c = zed_t ;
+	zed_t = 40 ;
+	grp = 0 ;
+	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst); 
+	
+	exe_c = exe_t ; // block to move onto the next position
+	wye_c = wye_t ;
+	zed_c = zed_t ;
+	grp = 2 ;
+	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst); 
+	
+	exe_c = exe_t ; // block to move onto the next position
+	wye_c = wye_t ;
+	zed_c = zed_t ;
+	zed_t = 250 ;
+	grp = 0 ;
+	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst); 
+	
+	exe_c = exe_t ; // block to move onto the next position
+	wye_c = wye_t ;
+	zed_c = zed_t ;
+	wye_t = 200 ;
+	grp = 0 ;
+	
+	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst); 
+	
+	exe_c = exe_t ; // block to move onto the next position
+	wye_c = wye_t ;
+	zed_c = zed_t ;
 	
 }
-	
-	 //Motor_Test() ; // Uncomment this line, the function header in example.h, and in example.c to test motion commands.
-/*	while(1) 
-	{
-		// Check if any Application Command for L6470 has been entered by USART
-    USART_CheckAppCmd();
-		HAL_Delay(5000) ;
-	}*/
+
 }
 
 

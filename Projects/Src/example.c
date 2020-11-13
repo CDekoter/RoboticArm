@@ -118,6 +118,8 @@
 	#define ULNA_MIN_PIN GPIO_PIN_9			// PB_9 - D8 on board
 	#define WRIST_MID_PIN GPIO_PIN_0	// PB_0 - A0 on board
 	#define CLAW_PIN GPIO_PIN_6 // not used
+	#define GRIP_DIR_PIN GPIO_PIN_5 // D13 on Board
+	#define GRIP_PWM_PIN GPIO_PIN_7 // D11 on Board
 
 	float Base_Rot(float x, float y) ;
 	float dist(float x, float y) ;
@@ -148,7 +150,6 @@ void Home_Arm(void)
 	uint8_t buffer[10];
 	uint8_t data[6];
 	
-	
 	__GPIOA_CLK_ENABLE();
 	GPIO_InitStructure.Pin   			= HUMERUS_MAX_PIN;
 	GPIO_InitStructure.Mode  			= GPIO_MODE_INPUT;
@@ -169,7 +170,6 @@ void Home_Arm(void)
 	GPIO_InitStructure.Pull  			= GPIO_NOPULL;
 	GPIO_InitStructure.Speed 			= GPIO_SPEED_FAST;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
-	
 	
   StepperMotorBoardHandle_t *StepperMotorBoardHandle;
   MotorParameterData_t *MotorParameterDataGlobal, *MotorParameterDataSingle;
@@ -202,10 +202,8 @@ void Home_Arm(void)
 			
 			// HOME GRIPPER - just run it into the hard stop
 		
-			StepperMotorBoardHandle->Command->Move(board3, L6470_ID(0), L6470_DIR_REV_ID, 10000);	// opens the gripper
-			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board3, L6470_ID(0), BUSY_ID)==0);
-		
-			StepperMotorBoardHandle->Command->SoftStop(board3, L6470_ID(0)); // lock gripper in place		
+			StepperMotorBoardHandle->Command->Move(board3, L6470_ID(1), L6470_DIR_REV_ID, 10000);	// opens the gripper
+			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board3, L6470_ID(1), BUSY_ID)==0);
 		
 			//HOME ULNA
 			StepperMotorBoardHandle->Command->ResetPos(board2, L6470_ID(0));
@@ -248,11 +246,49 @@ void Home_Arm(void)
 			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_REV_ID, Humerus_Rot(HOME_HUM));
 			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board1, L6470_ID(1), BUSY_ID)==0);
 				
-			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(1), L6470_DIR_FWD_ID, Ulna_Rot(HOME_WST-0.1)); // move the wrist back to level, not on the limit switch though
+			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(1), L6470_DIR_FWD_ID, Ulna_Rot(HOME_WST-0.3)); // move the wrist closer to level, not on the limit switch though
 		
 }
 
-void Move_Arm_Relative(float x_c, float y_c, float z_c, float x_t, float y_t, float z_t, float WristAngle, int GripperState)
+void Gripper(short grp_st)
+{
+		
+	__GPIOA_CLK_ENABLE();
+	GPIO_InitStructure.Pin   			= GRIP_DIR_PIN;
+	GPIO_InitStructure.Mode  			= GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStructure.Speed 			= GPIO_SPEED_FAST;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+	
+		__GPIOA_CLK_ENABLE();
+	GPIO_InitStructure.Pin   			= GRIP_PWM_PIN;
+	GPIO_InitStructure.Mode  			= GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStructure.Speed 			= GPIO_SPEED_FAST;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	if(grp_st == 1)
+	{
+		HAL_GPIO_WritePin(GPIOA, GRIP_DIR_PIN , GPIO_PIN_SET) ;
+		HAL_GPIO_WritePin(GPIOA, GRIP_PWM_PIN, GPIO_PIN_SET) ; 
+		
+		HAL_Delay(50) ;
+		
+		HAL_GPIO_WritePin(GPIOA, GRIP_DIR_PIN , GPIO_PIN_RESET) ;
+		HAL_GPIO_WritePin(GPIOA, GRIP_PWM_PIN, GPIO_PIN_RESET) ;
+		
+	}
+	else if(grp_st == 2)
+	{
+		HAL_GPIO_WritePin(GPIOA, GRIP_PWM_PIN, GPIO_PIN_SET) ; 
+		
+		HAL_Delay(50) ;
+		
+		HAL_GPIO_WritePin(GPIOA, GRIP_PWM_PIN, GPIO_PIN_RESET) ;
+	}
+	
+}
+
+
+void Move_Arm_Relative(float x_c, float y_c, float z_c, float x_t, float y_t, float z_t, float WristAngle)
 {
 	uint8_t id;
 	HAL_Init();
@@ -279,18 +315,6 @@ void Move_Arm_Relative(float x_c, float y_c, float z_c, float x_t, float y_t, fl
     MotorParameterDataSingle = MotorParameterDataGlobal+(id*L6470DAISYCHAINSIZE);
     StepperMotorBoardHandle->Config(MotorParameterDataSingle);
   }
-
-	
-	
-		if(GripperState == 1){
-					StepperMotorBoardHandle->Command->Move(board3, L6470_ID(1), L6470_DIR_FWD_ID, 5000) ;
-					while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board3, L6470_ID(1), BUSY_ID)==0);
-		}
-		
-		else if(GripperState == 2){
-			StepperMotorBoardHandle->Command->Move(board3, L6470_ID(1), L6470_DIR_REV_ID, 5000) ;
-			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board3, L6470_ID(1), BUSY_ID)==0);
-		}
 		
 		if(WristAngle < 0)
 		{
@@ -339,49 +363,7 @@ void Move_Arm_Relative(float x_c, float y_c, float z_c, float x_t, float y_t, fl
 		}
 		while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board2, L6470_ID(0), BUSY_ID)==0);
 }
-/*
-void Motor_Test()
-{
-	uint8_t id;
-	HAL_Init();
-	
-	uint8_t buffer[10];
-	uint8_t data[6];
-	
-	
-	StepperMotorBoardHandle_t *StepperMotorBoardHandle;
-  MotorParameterData_t *MotorParameterDataGlobal, *MotorParameterDataSingle;
-  
-	uint8_t board1 = EXPBRD_ID(0);
-	uint8_t board2 = EXPBRD_ID(1);
-	uint8_t board3 = EXPBRD_ID(2);
-	
-  // Setup each X-NUCLEO-IHM02A1 Expansion Board *****************************
-  
-  // Get the parameters for the motor connected with the 1st stepper motor driver of the 1st stepper motor expansion board
-  MotorParameterDataGlobal = GetMotorParameterInitData();
-  
-  for (id = 0; id < EXPBRD_MOUNTED_NR; id++)
-  {
-    StepperMotorBoardHandle = BSP_GetExpansionBoardHandle(EXPBRD_ID(id));
-    MotorParameterDataSingle = MotorParameterDataGlobal+(id*L6470DAISYCHAINSIZE);
-    StepperMotorBoardHandle->Config(MotorParameterDataSingle);
-  }
 
-	StepperMotorBoardHandle->Command->SoftStop(board1, L6470_ID(0)); // lock all motors in place using the softstop command
-	StepperMotorBoardHandle->Command->SoftStop(board1, L6470_ID(1));
-	StepperMotorBoardHandle->Command->SoftStop(board2, L6470_ID(0));
-	StepperMotorBoardHandle->Command->SoftStop(board2, L6470_ID(1));
-	StepperMotorBoardHandle->Command->SoftStop(board3, L6470_ID(0));
-	StepperMotorBoardHandle->Command->SoftStop(board3, L6470_ID(1));
-	
-	
-	HAL_Delay(5000) ;
-	StepperMotorBoardHandle->Command->Move(board3, L6470_ID(0), L6470_DIR_FWD_ID, 2000);
-	HAL_Delay(5000) ;
-	StepperMotorBoardHandle->Command->Move(board3, L6470_ID(1), L6470_DIR_FWD_ID, 2000);
-}
-*/
 
 float Base_Rot(float x, float y){
 	// Calculate the base angle and number of steps to move.
@@ -397,7 +379,6 @@ float Base_Rot(float x, float y){
 	}
 		return steps ;
 }
-
 
 float dist(float x, float y){
 	// Calculate the vertical projection of the arm

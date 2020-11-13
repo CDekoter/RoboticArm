@@ -72,9 +72,9 @@
   * @{
   */
 
-void Move_Arm_Relative(float x_c, float y_c, float z_c, float x_t, float y_t, float z_t, float gripperAngle, int gripperState);
+void Move_Arm_Relative(float x_c, float y_c, float z_c, float x_t, float y_t, float z_t, float gripperAngle);
 void Home_Arm(void) ;
-//void Motor_Test() ; 
+void Gripper(short grp_st) ; 
 
 /**
   * @}
