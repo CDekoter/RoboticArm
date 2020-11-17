@@ -117,13 +117,6 @@ int main(void)
 	short  grp = 0 ; // if grp = 0, no state change occurs during the move. if grp == 1, the gripper opens. if grip == 2, the gripper closes
 	
 	
-	grp = 1 ;
-	Gripper(grp) ;
-	
-	HAL_Delay(2000) ;
-	grp = 2 ;
-	Gripper(grp) ;
-	
 	Home_Arm() ; // home the arm, moving it to 159, 0, 179
 	
 	exe_c = 153 ; // home position
@@ -139,7 +132,7 @@ int main(void)
 	zed_t = 40 ;
 	grp = 1 ;
 	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst); 
-	Gripper(grp) ;
+//	Gripper(grp) ;
 		
 	exe_c = exe_t ; // block to move onto the next position
 	wye_c = wye_t ;
