@@ -103,8 +103,9 @@
 	#define HOME_SPEED 30000//12800
 	
 	#define HOME_HUM 1.431 // HOME_HUM and LIM_HUM must sum to Pi/2
-	#define HOME_ULN 0.65 
-	#define HOME_WST 0.8
+	#define HOME_ULN 1.2 
+	#define HOME_WST 1.0
+	#define HOME_BSE 0.8 // Move the base 
 	
 	#define LIM_HUM 0.14 // HOME_HUM and LIM_HUM must sum to Pi/2
 	#define LIM_ULN 0.0
@@ -116,10 +117,11 @@
 	
 	#define HUMERUS_MAX_PIN GPIO_PIN_8 // PB_8 - D7 on board
 	#define ULNA_MIN_PIN GPIO_PIN_9			// PB_9 - D8 on board
-	#define WRIST_MID_PIN GPIO_PIN_0	// PB_0 - A0 on board
+	#define WRIST_MID_PIN GPIO_PIN_2	// PA_2 - D1 on board
 	#define CLAW_PIN GPIO_PIN_6 // not used
 	#define GRIP_DIR_PIN GPIO_PIN_5 // D13 on Board
 	#define GRIP_PWM_PIN GPIO_PIN_7 // D11 on Board
+	#define BASE_HOME GPIO_PIN_10 // D2 on Board
 
 	float Base_Rot(float x, float y) ;
 	float dist(float x, float y) ;
@@ -147,8 +149,6 @@ void Home_Arm(void)
 	uint8_t id;
 	HAL_Init();
 	
-	uint8_t buffer[10];
-	uint8_t data[6];
 	
 	__GPIOA_CLK_ENABLE();
 	GPIO_InitStructure.Pin   			= HUMERUS_MAX_PIN;
@@ -166,6 +166,13 @@ void Home_Arm(void)
 	
 	__GPIOA_CLK_ENABLE();
 	GPIO_InitStructure.Pin   			= WRIST_MID_PIN;
+	GPIO_InitStructure.Mode  			= GPIO_MODE_INPUT;
+	GPIO_InitStructure.Pull  			= GPIO_NOPULL;
+	GPIO_InitStructure.Speed 			= GPIO_SPEED_FAST;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+	
+		__GPIOA_CLK_ENABLE();
+	GPIO_InitStructure.Pin   			= BASE_HOME;
 	GPIO_InitStructure.Mode  			= GPIO_MODE_INPUT;
 	GPIO_InitStructure.Pull  			= GPIO_NOPULL;
 	GPIO_InitStructure.Speed 			= GPIO_SPEED_FAST;
@@ -199,11 +206,17 @@ void Home_Arm(void)
 			StepperMotorBoardHandle->Command->SoftStop(board3, L6470_ID(0));
 			StepperMotorBoardHandle->Command->SoftStop(board3, L6470_ID(1));
 	
-			
-			// HOME GRIPPER - just run it into the hard stop
-		
-			StepperMotorBoardHandle->Command->Move(board3, L6470_ID(1), L6470_DIR_REV_ID, 10000);	// opens the gripper
-			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board3, L6470_ID(1), BUSY_ID)==0);
+			// Home Base
+			StepperMotorBoardHandle->Command->ResetPos(board1, L6470_ID(0));
+			StepperMotorBoardHandle->Command->Run(board1, L6470_ID(0), L6470_DIR_REV_ID, 0.125*HOME_SPEED);
+			while(!HAL_GPIO_ReadPin(GPIOA, BASE_HOME));
+			StepperMotorBoardHandle->Command->HardStop(board1, L6470_ID(0));
+			StepperMotorBoardHandle->Command->Run(board1, L6470_ID(0), L6470_DIR_FWD_ID, 0.125*HOME_SPEED);
+			while(HAL_GPIO_ReadPin(GPIOA, BASE_HOME));
+			StepperMotorBoardHandle->Command->HardStop(board1, L6470_ID(0));
+			StepperMotorBoardHandle->Command->ResetPos(board1, L6470_ID(0));
+			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(0), L6470_DIR_FWD_ID, STEPS_PER_RAD_BASE*HOME_BSE);
+			// while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board1, L6470_ID(0), BUSY_ID)==0);
 		
 			//HOME ULNA
 			StepperMotorBoardHandle->Command->ResetPos(board2, L6470_ID(0));
@@ -216,8 +229,6 @@ void Home_Arm(void)
 			StepperMotorBoardHandle->Command->ResetPos(board2, L6470_ID(0));
 			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(0), L6470_DIR_FWD_ID, Ulna_Rot(HOME_ULN));
 			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board2, L6470_ID(0), BUSY_ID)==0);
-			
-			StepperMotorBoardHandle->Command->SoftStop(board2, L6470_ID(0)); // lock ulna in place
  			
 			//HOME WRIST ANGLE
 			StepperMotorBoardHandle->Command->ResetPos(board2, L6470_ID(1));
@@ -236,14 +247,14 @@ void Home_Arm(void)
 			//HOME HUMERUS
 			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board2, L6470_ID(0), BUSY_ID)==0); // wait for ulna
 			StepperMotorBoardHandle->Command->ResetPos(board1, L6470_ID(1));
-			StepperMotorBoardHandle->Command->Run(board1, L6470_ID(1), L6470_DIR_FWD_ID, HOME_SPEED);
+			StepperMotorBoardHandle->Command->Run(board1, L6470_ID(1), L6470_DIR_REV_ID, HOME_SPEED);
 			while(!HAL_GPIO_ReadPin(GPIOA, HUMERUS_MAX_PIN));
 			StepperMotorBoardHandle->Command->HardStop(board1, L6470_ID(1));
-			StepperMotorBoardHandle->Command->Run(board1, L6470_ID(1), L6470_DIR_REV_ID, HOME_SPEED);
+			StepperMotorBoardHandle->Command->Run(board1, L6470_ID(1), L6470_DIR_FWD_ID, HOME_SPEED);
 			while(HAL_GPIO_ReadPin(GPIOA, HUMERUS_MAX_PIN));
 			StepperMotorBoardHandle->Command->HardStop(board1, L6470_ID(1));
 			StepperMotorBoardHandle->Command->ResetPos(board1, L6470_ID(1));
-			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_REV_ID, Humerus_Rot(HOME_HUM));
+			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_FWD_ID, Humerus_Rot(HOME_HUM));
 			while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board1, L6470_ID(1), BUSY_ID)==0);
 				
 			StepperMotorBoardHandle->Command->Move(board2, L6470_ID(1), L6470_DIR_FWD_ID, Ulna_Rot(HOME_WST-0.3)); // move the wrist closer to level, not on the limit switch though
@@ -252,7 +263,9 @@ void Home_Arm(void)
 
 void Gripper(short grp_st)
 {
-		
+	
+	HAL_Init();
+	
 	__GPIOA_CLK_ENABLE();
 	GPIO_InitStructure.Pin   			= GRIP_DIR_PIN;
 	GPIO_InitStructure.Mode  			= GPIO_MODE_OUTPUT_PP;
@@ -292,9 +305,6 @@ void Move_Arm_Relative(float x_c, float y_c, float z_c, float x_t, float y_t, fl
 {
 	uint8_t id;
 	HAL_Init();
-	
-	uint8_t buffer[10];
-	uint8_t data[6];
 	
 	
 	StepperMotorBoardHandle_t *StepperMotorBoardHandle;
@@ -345,11 +355,11 @@ void Move_Arm_Relative(float x_c, float y_c, float z_c, float x_t, float y_t, fl
 		
 		if(Delta_Beta < 0)
 		{
-			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_FWD_ID, -1 * Humerus_Rot(Delta_Beta));	
+			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_REV_ID, -1 * Humerus_Rot(Delta_Beta));	
 		}
 		else
 		{
-			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_REV_ID, Humerus_Rot(Delta_Beta));	
+			StepperMotorBoardHandle->Command->Move(board1, L6470_ID(1), L6470_DIR_FWD_ID, Humerus_Rot(Delta_Beta));	
 		}
 		while(StepperMotorBoardHandle->Command->CheckStatusRegisterFlag(board1, L6470_ID(1), BUSY_ID)==0);
 		

@@ -132,7 +132,7 @@ int main(void)
 	zed_t = 40 ;
 	grp = 1 ;
 	Move_Arm_Relative(exe_c,wye_c,zed_c,exe_t,wye_t,zed_t,wst); 
-//	Gripper(grp) ;
+	Gripper(grp) ;
 		
 	exe_c = exe_t ; // block to move onto the next position
 	wye_c = wye_t ;
